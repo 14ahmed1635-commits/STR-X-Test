@@ -29,6 +29,7 @@ local SuspicionBarFrame = nil
 local SuspicionFill = nil
 local SuspicionLabel = nil
 local IsGuiOpen = false
+local Settings = {} -- سيتم ملؤها من الـ loader
 
 -- == وظائف إنشاء عناصر الواجهة ==
 local function createCorner(parent, radius)
@@ -204,8 +205,7 @@ local function createSlider(name, settingTable, settingKey, min, max, increment)
     end)
 end
 
--- == [بداية التعديل] دوال الواجهة الرئيسية تم نقلها إلى هنا ==
-local function createMainGui(settings)
+local function createMainGui()
     if MainGui then return end
     
     MainGui = Instance.new("ScreenGui")
@@ -213,7 +213,7 @@ local function createMainGui(settings)
     MainGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
     MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     MainGui.ResetOnSpawn = false
-    MainGui.Enabled = false -- تبدأ مغلقة
+    MainGui.Enabled = false
 
     MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
@@ -254,7 +254,7 @@ local function createMainGui(settings)
     CloseButton.TextSize = 20
     
     CloseButton.MouseButton1Click:Connect(function()
-        toggleMainGui() -- تم تعديل الاسم
+        toggleMainGui()
     end)
     
     ContentFrame = Instance.new("ScrollingFrame")
@@ -278,32 +278,32 @@ local function createMainGui(settings)
     end)
 
     createSection("🎯 الأيم بوت")
-    createToggle("تفعيل", settings.Aimbot, "Enabled")
-    createToggle("فحص الفريق", settings.Aimbot, "TeamCheck")
-    createToggle("فحص الرؤية", settings.Aimbot, "VisibleCheck")
-    createToggle("التنبؤ", settings.Aimbot, "PredictionEnabled")
-    createDropdown("جزء الهدف", settings.Aimbot, "TargetPart", {"Head", "UpperTorso", "HumanoidRootPart", "LowerTorso"})
-    createSlider("النعومة", settings.Aimbot, "Smoothness", 0.01, 1, 0.01)
-    createSlider("مجال الرؤية (FOV)", settings.Aimbot, "FOV", 50, 500, 10)
-    createSlider("مقدار التنبؤ", settings.Aimbot, "PredictionAmount", 0, 0.5, 0.01)
+    createToggle("تفعيل", Settings.Aimbot, "Enabled")
+    createToggle("فحص الفريق", Settings.Aimbot, "TeamCheck")
+    createToggle("فحص الرؤية", Settings.Aimbot, "VisibleCheck")
+    createToggle("التنبؤ", Settings.Aimbot, "PredictionEnabled")
+    createDropdown("جزء الهدف", Settings.Aimbot, "TargetPart", {"Head", "UpperTorso", "HumanoidRootPart", "LowerTorso"})
+    createSlider("النعومة", Settings.Aimbot, "Smoothness", 0.01, 1, 0.01)
+    createSlider("مجال الرؤية (FOV)", Settings.Aimbot, "FOV", 50, 500, 10)
+    createSlider("مقدار التنبؤ", Settings.Aimbot, "PredictionAmount", 0, 0.5, 0.01)
     
     createSection("👁️ الكشف (ESP)")
-    createToggle("تفعيل", settings.ESP, "Enabled")
-    createToggle("إظهار الصحة", settings.ESP, "ShowHealth")
-    createToggle("إظهار الأسماء", settings.ESP, "ShowName")
-    createToggle("إظهار المسافة", settings.ESP, "ShowDistance")
-    createToggle("فحص الفريق", settings.ESP, "TeamCheck")
+    createToggle("تفعيل", Settings.ESP, "Enabled")
+    createToggle("إظهار الصحة", Settings.ESP, "ShowHealth")
+    createToggle("إظهار الأسماء", Settings.ESP, "ShowName")
+    createToggle("إظهار المسافة", Settings.ESP, "ShowDistance")
+    createToggle("فحص الفريق", Settings.ESP, "TeamCheck")
 
     createSection("🛡️ الحماية")
-    createToggle("درع السلوك", settings.Protection, "BehavioralShield")
-    createToggle("إدارة الجلسة", settings.Protection, "SessionManagement")
-    createSlider("الحد الأقصى للقتل في الدقيقة", settings.Protection, "MaxKillsPerMinute", 1, 20, 1)
-    createSlider("الحد الأقصى للدقة (%)", settings.Protection, "MaxAccuracy", 50, 100, 5)
+    createToggle("درع السلوك", Settings.Protection, "BehavioralShield")
+    createToggle("إدارة الجلسة", Settings.Protection, "SessionManagement")
+    createSlider("الحد الأقصى للقتل في الدقيقة", Settings.Protection, "MaxKillsPerMinute", 1, 20, 1)
+    createSlider("الحد الأقصى للدقة (%)", Settings.Protection, "MaxAccuracy", 50, 100, 5)
 end
 
 local function toggleMainGui()
     if not MainGui then
-        createMainGui(require(script.Parent.CoreLogicModule).GetSettings()) -- تم تعديل الاسم
+        createMainGui()
     end
 
     IsGuiOpen = not IsGuiOpen
@@ -315,23 +315,24 @@ local function toggleMainGui()
         MainFrame:TweenPosition(UDim2.new(0.5, -300, 1, 600), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true)
     end
 end
--- == [نهاية التعديل] ==
 
 -- == وظائف الوحدة الرئيسية ==
-function GuiModule.Initialize(playerGui)
+function GuiModule.Initialize(playerGui, settingsFromLoader)
+    Settings = settingsFromLoader -- نسخ الإعدادات من الـ loader
+    
     -- إنشاء واجهة شريط الشك
     SuspicionBarGui = Instance.new("ScreenGui")
     SuspicionBarGui.Name = "STR_X_SuspicionBar"
     SuspicionBarGui.Parent = playerGui
     SuspicionBarGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     SuspicionBarGui.ResetOnSpawn = false
-    SuspicionBarGui.DisplayOrder = 10 -- لجعله يظهر فوق كل شيء
+    SuspicionBarGui.DisplayOrder = 10
 
     SuspicionBarFrame = Instance.new("Frame")
     SuspicionBarFrame.Name = "SuspicionBarFrame"
     SuspicionBarFrame.Parent = SuspicionBarGui
     SuspicionBarFrame.Size = UDim2.new(0, 200, 0, 30)
-    SuspicionBarFrame.Position = UDim2.new(0, 10, 0, 10) -- أعلى اليسار
+    SuspicionBarFrame.Position = UDim2.new(0, 10, 0, 10)
     SuspicionBarFrame.BackgroundColor3 = Theme.Background
     createCorner(SuspicionBarFrame, 8)
     createStroke(SuspicionBarFrame, Theme.Accent, 1)
@@ -358,7 +359,6 @@ function GuiModule.Initialize(playerGui)
     SuspicionFill.ZIndex = SuspicionFill.ZIndex - 1
     createCorner(SuspicionFill, 8)
     
-    -- جعل شريط الشك قابل للسحب
     local draggingSuspicionBar = false
     local dragStart, startPos
 
@@ -383,7 +383,6 @@ function GuiModule.Initialize(playerGui)
         end
     end)
 
-    -- إنشاء زر التبديل
     local ToggleGui = Instance.new("ScreenGui")
     ToggleGui.Name = "STR_X_ToggleGui"
     ToggleGui.Parent = playerGui
@@ -402,7 +401,7 @@ function GuiModule.Initialize(playerGui)
 
     ToggleButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            toggleMainGui() -- الآن الدالة معرفة وموجودة
+            toggleMainGui()
         end
     end)
 end
