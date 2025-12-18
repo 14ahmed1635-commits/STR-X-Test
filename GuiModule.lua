@@ -1,4 +1,4 @@
-  --[[
+--[[
     STR X - GUI Module
     مسؤول عن إنشاء وإدارة جميع عناصر الواجهة الرسومية.
     تصميم عصري ومتطور مع أقسام منظمة
@@ -585,4 +585,268 @@ local function createMainGui()
     createToggle(aimbotPage, "التنبؤ بالحركة", "توقع حركة الهدف للدقة الأفضل", Settings.Aimbot, "PredictionEnabled")
     
     createSection(aimbotPage, "🎚️ إعدادات متقدمة")
-    createDropdown(aimbotPage, "جزء الجسم المستهدف", "اختر المنطقة التي سيتم التصويب عليها", Settings.Aimbot, "TargetPart", {"Head", "UpperTorso", "Human
+    createDropdown(aimbotPage, "جزء الجسم المستهدف", "اختر المنطقة التي سيتم التصويب عليها", Settings.Aimbot, "TargetPart", {"Head", "UpperTorso", "HumanoidRootPart", "LowerTorso"})
+    createSlider(aimbotPage, "سلاسة التصويب", "تحكم في سرعة حركة الكاميرا (أقل = أسرع)", Settings.Aimbot, "Smoothness", 0.01, 1, 0.01)
+    createSlider(aimbotPage, "مجال الرؤية", "المسافة من المؤشر لاختيار الأهداف", Settings.Aimbot, "FOV", 50, 500, 10)
+    createSlider(aimbotPage, "قوة التنبؤ", "مقدار التنبؤ بحركة الهدف", Settings.Aimbot, "PredictionAmount", 0, 0.5, 0.01)
+    
+    -- إنشاء صفحة الكشف
+    local espPage = createPage("esp")
+    createSection(espPage, "👁️ إعدادات العرض")
+    createToggle(espPage, "تفعيل نظام الكشف", "عرض معلومات اللاعبين على الشاشة", Settings.ESP, "Enabled")
+    createToggle(espPage, "إظهار الأسماء", "عرض أسماء اللاعبين فوق رؤوسهم", Settings.ESP, "ShowName")
+    createToggle(espPage, "إظهار الصحة", "عرض مستوى صحة اللاعبين", Settings.ESP, "ShowHealth")
+    createToggle(espPage, "إظهار المسافة", "عرض المسافة بينك وبين اللاعبين", Settings.ESP, "ShowDistance")
+    createToggle(espPage, "فحص الفريق", "إخفاء معلومات أعضاء فريقك", Settings.ESP, "TeamCheck")
+    
+    -- إنشاء صفحة الحماية
+    local protectionPage = createPage("protection")
+    createSection(protectionPage, "🛡️ أنظمة الحماية الذكية")
+    createToggle(protectionPage, "درع السلوك", "حماية ذكية من الاكتشاف بتحليل سلوك اللعب", Settings.Protection, "BehavioralShield")
+    createToggle(protectionPage, "إدارة الجلسة", "مراقبة وضبط إحصائيات اللعب تلقائياً", Settings.Protection, "SessionManagement")
+    
+    createSection(protectionPage, "⚠️ حدود الأمان")
+    createSlider(protectionPage, "الحد الأقصى للقتل", "أقصى عدد قتل في الدقيقة (توصية: 3-5)", Settings.Protection, "MaxKillsPerMinute", 1, 20, 1)
+    createSlider(protectionPage, "الحد الأقصى للدقة", "أقصى نسبة دقة مسموحة (توصية: 75-85%)", Settings.Protection, "MaxAccuracy", 50, 100, 5)
+end
+
+local function toggleMainGui()
+    if not MainGui then
+        createMainGui()
+    end
+
+    IsGuiOpen = not IsGuiOpen
+    MainGui.Enabled = IsGuiOpen
+
+    if IsGuiOpen then
+        MainFrame.Size = UDim2.new(0, 0, 0, 0)
+        MainFrame.Visible = true
+        TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 750, 0, 550)
+        }):Play()
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0)
+        }):Play()
+        task.wait(0.4)
+        MainFrame.Visible = false
+    end
+end
+
+-- == وظائف الوحدة الرئيسية ==
+function GuiModule.Initialize(playerGui, settingsFromLoader)
+    Settings = settingsFromLoader
+    
+    -- إنشاء واجهة شريط الشك
+    SuspicionBarGui = Instance.new("ScreenGui")
+    SuspicionBarGui.Name = "STR_X_SuspicionBar"
+    SuspicionBarGui.Parent = playerGui
+    SuspicionBarGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    SuspicionBarGui.ResetOnSpawn = false
+    SuspicionBarGui.DisplayOrder = 10
+
+    SuspicionBarFrame = Instance.new("Frame")
+    SuspicionBarFrame.Name = "SuspicionBarFrame"
+    SuspicionBarFrame.Parent = SuspicionBarGui
+    SuspicionBarFrame.Size = UDim2.new(0, 220, 0, 35)
+    SuspicionBarFrame.Position = UDim2.new(0, 10, 0, 10)
+    SuspicionBarFrame.BackgroundColor3 = Theme.Background
+    createCorner(SuspicionBarFrame, 10)
+    createStroke(SuspicionBarFrame, Theme.Border, 2)
+
+    SuspicionLabel = Instance.new("TextLabel")
+    SuspicionLabel.Name = "SuspicionLabel"
+    SuspicionLabel.Parent = SuspicionBarFrame
+    SuspicionLabel.Size = UDim2.new(1, -10, 1, 0)
+    SuspicionLabel.Position = UDim2.new(0, 5, 0, 0)
+    SuspicionLabel.BackgroundTransparency = 1
+    SuspicionLabel.Font = Enum.Font.GothamBold
+    SuspicionLabel.Text = "🛡️ مستوى الأمان: 100%"
+    SuspicionLabel.TextColor3 = Theme.TextColor
+    SuspicionLabel.TextSize = 15
+    SuspicionLabel.TextXAlignment = Enum.TextXAlignment.Center
+    SuspicionLabel.ZIndex = 2
+
+    SuspicionFill = Instance.new("Frame")
+    SuspicionFill.Name = "SuspicionFill"
+    SuspicionFill.Parent = SuspicionBarFrame
+    SuspicionFill.Size = UDim2.new(1, 0, 1, 0)
+    SuspicionFill.Position = UDim2.new(0, 0, 0, 0)
+    SuspicionFill.BackgroundColor3 = Theme.Green
+    SuspicionFill.BorderSizePixel = 0
+    SuspicionFill.ZIndex = 1
+    createCorner(SuspicionFill, 10)
+    
+    local draggingSuspicionBar = false
+    local dragStart, startPos
+
+    SuspicionBarFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSuspicionBar = true
+            dragStart = input.Position
+            startPos = SuspicionBarFrame.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if draggingSuspicionBar and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            SuspicionBarFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingSuspicionBar = false
+        end
+    end)
+
+    -- إنشاء زر التفعيل مع الصورة
+    local ToggleGui = Instance.new("ScreenGui")
+    ToggleGui.Name = "STR_X_ToggleGui"
+    ToggleGui.Parent = playerGui
+    ToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ToggleGui.ResetOnSpawn = false
+
+    local ToggleButton = Instance.new("ImageButton")
+    ToggleButton.Name = "ToggleButton"
+    ToggleButton.Parent = ToggleGui
+    ToggleButton.BackgroundColor3 = Theme.Accent
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.AnchorPoint = Vector2.new(1, 0.5)
+    ToggleButton.Size = UDim2.new(0, 70, 0, 70)
+    ToggleButton.Position = UDim2.new(1, -15, 0.5, 0)
+    ToggleButton.Image = "rbxassetid://106113113950519"
+    ToggleButton.ScaleType = Enum.ScaleType.Fit
+    ToggleButton.ImageTransparency = 0
+    createCorner(ToggleButton, 35)
+    createStroke(ToggleButton, Color3.fromRGB(255, 255, 255), 3)
+    
+    -- إضافة ظل للزر
+    local shadowFrame = Instance.new("Frame")
+    shadowFrame.Parent = ToggleButton
+    shadowFrame.Size = UDim2.new(1, 10, 1, 10)
+    shadowFrame.Position = UDim2.new(0, -5, 0, -5)
+    shadowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadowFrame.BackgroundTransparency = 0.7
+    shadowFrame.ZIndex = -1
+    createCorner(shadowFrame, 40)
+    
+    -- إضافة تأثير توهج
+    local glowFrame = Instance.new("Frame")
+    glowFrame.Parent = ToggleButton
+    glowFrame.Size = UDim2.new(1, 20, 1, 20)
+    glowFrame.Position = UDim2.new(0, -10, 0, -10)
+    glowFrame.BackgroundColor3 = Theme.Accent
+    glowFrame.BackgroundTransparency = 0.8
+    glowFrame.ZIndex = -1
+    createCorner(glowFrame, 45)
+    
+    -- تأثير نبض مستمر
+    task.spawn(function()
+        while true do
+            TweenService:Create(glowFrame, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                BackgroundTransparency = 0.5,
+                Size = UDim2.new(1, 25, 1, 25),
+                Position = UDim2.new(0, -12.5, 0, -12.5)
+            }):Play()
+            task.wait(3)
+        end
+    end)
+    
+    -- تأثيرات التفاعل
+    ToggleButton.MouseEnter:Connect(function()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = UDim2.new(0, 80, 0, 80),
+            BackgroundColor3 = Theme.AccentHover
+        }):Play()
+    end)
+    
+    ToggleButton.MouseLeave:Connect(function()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = UDim2.new(0, 70, 0, 70),
+            BackgroundColor3 = Theme.Accent
+        }):Play()
+    end)
+    
+    -- جعل الزر قابل للسحب
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    ToggleButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ToggleButton.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    ToggleButton.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    -- فتح القائمة عند النقر
+    local clickTime = 0
+    ToggleButton.MouseButton1Click:Connect(function()
+        local currentTime = tick()
+        if currentTime - clickTime < 0.3 then
+            return
+        end
+        clickTime = currentTime
+        
+        task.wait(0.1)
+        if not dragging then
+            toggleMainGui()
+            
+            -- تأثير النقر
+            TweenService:Create(ToggleButton, TweenInfo.new(0.1), {
+                Size = UDim2.new(0, 65, 0, 65)
+            }):Play()
+            task.wait(0.1)
+            TweenService:Create(ToggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
+                Size = UDim2.new(0, 70, 0, 70)
+            }):Play()
+        end
+    end)
+    
+    warn("[+] ✅ تم تحميل واجهة STR X بنجاح!")
+    warn("[+] 🎮 اضغط على الزر الدائري على يمين الشاشة لفتح القائمة")
+    warn("[+] 🛡️ جميع أنظمة الحماية نشطة")
+end
+
+function GuiModule.UpdateSuspicionBar(level)
+    if SuspicionFill and SuspicionLabel then
+        local safetyLevel = 100 - level
+        SuspicionLabel.Text = string.format("🛡️ مستوى الأمان: %d%%", safetyLevel)
+        
+        SuspicionFill:TweenSize(UDim2.new((100 - level) / 100, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.5, true)
+        
+        local color
+        if level < 30 then 
+            color = Theme.Green
+        elseif level < 70 then 
+            color = Theme.Yellow
+        else 
+            color = Theme.Red
+        end
+        
+        TweenService:Create(SuspicionFill, TweenInfo.new(0.5), {BackgroundColor3 = color}):Play()
+    end
+end
+
+return GuiModule
