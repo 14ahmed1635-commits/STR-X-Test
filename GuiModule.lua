@@ -204,6 +204,119 @@ local function createSlider(name, settingTable, settingKey, min, max, increment)
     end)
 end
 
+-- == [بداية التعديل] دوال الواجهة الرئيسية تم نقلها إلى هنا ==
+local function createMainGui(settings)
+    if MainGui then return end
+    
+    MainGui = Instance.new("ScreenGui")
+    MainGui.Name = "STR_X_MainGui"
+    MainGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    MainGui.ResetOnSpawn = false
+    MainGui.Enabled = false -- تبدأ مغلقة
+
+    MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = MainGui
+    MainFrame.Size = UDim2.new(0, 600, 0, 500)
+    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -250)
+    MainFrame.BackgroundColor3 = Theme.Background
+    MainFrame.BorderSizePixel = 0
+    createCorner(MainFrame, 10)
+    createStroke(MainFrame, Theme.Accent, 2)
+
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.Parent = MainFrame
+    TitleBar.Size = UDim2.new(1, 0, 0, 50)
+    TitleBar.BackgroundColor3 = Theme.Primary
+    createCorner(TitleBar, 10)
+    
+    local Title = Instance.new("TextLabel")
+    Title.Parent = TitleBar
+    Title.Size = UDim2.new(1, -100, 1, 0)
+    Title.BackgroundTransparency = 1
+    Title.Position = UDim2.new(0, 15, 0, 0)
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "🛡️ STR X"
+    Title.TextColor3 = Theme.Accent
+    Title.TextSize = 20
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Parent = TitleBar
+    CloseButton.Size = UDim2.new(0, 40, 0, 40)
+    CloseButton.Position = UDim2.new(1, -45, 0, 5)
+    CloseButton.BackgroundTransparency = 1
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Theme.Red
+    CloseButton.TextSize = 20
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        toggleMainGui() -- تم تعديل الاسم
+    end)
+    
+    ContentFrame = Instance.new("ScrollingFrame")
+    ContentFrame.Name = "ContentFrame"
+    ContentFrame.Parent = MainFrame
+    ContentFrame.Size = UDim2.new(1, -20, 1, -70)
+    ContentFrame.Position = UDim2.new(0, 10, 0, 60)
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.BorderSizePixel = 0
+    ContentFrame.ScrollBarThickness = 4
+    ContentFrame.ScrollBarImageColor3 = Theme.Accent
+    ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Parent = ContentFrame
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.Padding = UDim.new(0, 8)
+    
+    UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
+    end)
+
+    createSection("🎯 الأيم بوت")
+    createToggle("تفعيل", settings.Aimbot, "Enabled")
+    createToggle("فحص الفريق", settings.Aimbot, "TeamCheck")
+    createToggle("فحص الرؤية", settings.Aimbot, "VisibleCheck")
+    createToggle("التنبؤ", settings.Aimbot, "PredictionEnabled")
+    createDropdown("جزء الهدف", settings.Aimbot, "TargetPart", {"Head", "UpperTorso", "HumanoidRootPart", "LowerTorso"})
+    createSlider("النعومة", settings.Aimbot, "Smoothness", 0.01, 1, 0.01)
+    createSlider("مجال الرؤية (FOV)", settings.Aimbot, "FOV", 50, 500, 10)
+    createSlider("مقدار التنبؤ", settings.Aimbot, "PredictionAmount", 0, 0.5, 0.01)
+    
+    createSection("👁️ الكشف (ESP)")
+    createToggle("تفعيل", settings.ESP, "Enabled")
+    createToggle("إظهار الصحة", settings.ESP, "ShowHealth")
+    createToggle("إظهار الأسماء", settings.ESP, "ShowName")
+    createToggle("إظهار المسافة", settings.ESP, "ShowDistance")
+    createToggle("فحص الفريق", settings.ESP, "TeamCheck")
+
+    createSection("🛡️ الحماية")
+    createToggle("درع السلوك", settings.Protection, "BehavioralShield")
+    createToggle("إدارة الجلسة", settings.Protection, "SessionManagement")
+    createSlider("الحد الأقصى للقتل في الدقيقة", settings.Protection, "MaxKillsPerMinute", 1, 20, 1)
+    createSlider("الحد الأقصى للدقة (%)", settings.Protection, "MaxAccuracy", 50, 100, 5)
+end
+
+local function toggleMainGui()
+    if not MainGui then
+        createMainGui(require(script.Parent.CoreLogicModule).GetSettings()) -- تم تعديل الاسم
+    end
+
+    IsGuiOpen = not IsGuiOpen
+    MainGui.Enabled = IsGuiOpen
+
+    if IsGuiOpen then
+        MainFrame:TweenPosition(UDim2.new(0.5, -300, 0.5, -250), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
+    else
+        MainFrame:TweenPosition(UDim2.new(0.5, -300, 1, 600), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true)
+    end
+end
+-- == [نهاية التعديل] ==
+
 -- == وظائف الوحدة الرئيسية ==
 function GuiModule.Initialize(playerGui)
     -- إنشاء واجهة شريط الشك
@@ -289,120 +402,9 @@ function GuiModule.Initialize(playerGui)
 
     ToggleButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            GuiModule:ToggleGui()
+            toggleMainGui() -- الآن الدالة معرفة وموجودة
         end
     end)
-end
-
-function GuiModule:CreateMainGui(settings)
-    if MainGui then return end
-    
-    MainGui = Instance.new("ScreenGui")
-    MainGui.Name = "STR_X_MainGui"
-    MainGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-    MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    MainGui.ResetOnSpawn = false
-    MainGui.Enabled = false -- تبدأ مغلقة
-
-    MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Parent = MainGui
-    MainFrame.Size = UDim2.new(0, 600, 0, 500)
-    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -250)
-    MainFrame.BackgroundColor3 = Theme.Background
-    MainFrame.BorderSizePixel = 0
-    createCorner(MainFrame, 10)
-    createStroke(MainFrame, Theme.Accent, 2)
-
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Name = "TitleBar"
-    TitleBar.Parent = MainFrame
-    TitleBar.Size = UDim2.new(1, 0, 0, 50)
-    TitleBar.BackgroundColor3 = Theme.Primary
-    createCorner(TitleBar, 10)
-    
-    local Title = Instance.new("TextLabel")
-    Title.Parent = TitleBar
-    Title.Size = UDim2.new(1, -100, 1, 0)
-    Title.BackgroundTransparency = 1
-    Title.Position = UDim2.new(0, 15, 0, 0)
-    Title.Font = Enum.Font.GothamBold
-    Title.Text = "🛡️ STR X"
-    Title.TextColor3 = Theme.Accent
-    Title.TextSize = 20
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Parent = TitleBar
-    CloseButton.Size = UDim2.new(0, 40, 0, 40)
-    CloseButton.Position = UDim2.new(1, -45, 0, 5)
-    CloseButton.BackgroundTransparency = 1
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.Text = "X"
-    CloseButton.TextColor3 = Theme.Red
-    CloseButton.TextSize = 20
-    
-    CloseButton.MouseButton1Click:Connect(function()
-        self:ToggleGui()
-    end)
-    
-    ContentFrame = Instance.new("ScrollingFrame")
-    ContentFrame.Name = "ContentFrame"
-    ContentFrame.Parent = MainFrame
-    ContentFrame.Size = UDim2.new(1, -20, 1, -70)
-    ContentFrame.Position = UDim2.new(0, 10, 0, 60)
-    ContentFrame.BackgroundTransparency = 1
-    ContentFrame.BorderSizePixel = 0
-    ContentFrame.ScrollBarThickness = 4
-    ContentFrame.ScrollBarImageColor3 = Theme.Accent
-    ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    
-    local UIListLayout = Instance.new("UIListLayout")
-    UIListLayout.Parent = ContentFrame
-    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    UIListLayout.Padding = UDim.new(0, 8)
-    
-    UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        ContentFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
-    end)
-
-    createSection("🎯 الأيم بوت")
-    createToggle("تفعيل", settings.Aimbot, "Enabled")
-    createToggle("فحص الفريق", settings.Aimbot, "TeamCheck")
-    createToggle("فحص الرؤية", settings.Aimbot, "VisibleCheck")
-    createToggle("التنبؤ", settings.Aimbot, "PredictionEnabled")
-    createDropdown("جزء الهدف", settings.Aimbot, "TargetPart", {"Head", "UpperTorso", "HumanoidRootPart", "LowerTorso"})
-    createSlider("النعومة", settings.Aimbot, "Smoothness", 0.01, 1, 0.01)
-    createSlider("مجال الرؤية (FOV)", settings.Aimbot, "FOV", 50, 500, 10)
-    createSlider("مقدار التنبؤ", settings.Aimbot, "PredictionAmount", 0, 0.5, 0.01)
-    
-    createSection("👁️ الكشف (ESP)")
-    createToggle("تفعيل", settings.ESP, "Enabled")
-    createToggle("إظهار الصحة", settings.ESP, "ShowHealth")
-    createToggle("إظهار الأسماء", settings.ESP, "ShowName")
-    createToggle("إظهار المسافة", settings.ESP, "ShowDistance")
-    createToggle("فحص الفريق", settings.ESP, "TeamCheck")
-
-    createSection("🛡️ الحماية")
-    createToggle("درع السلوك", settings.Protection, "BehavioralShield")
-    createToggle("إدارة الجلسة", settings.Protection, "SessionManagement")
-    createSlider("الحد الأقصى للقتل في الدقيقة", settings.Protection, "MaxKillsPerMinute", 1, 20, 1)
-    createSlider("الحد الأقصى للدقة (%)", settings.Protection, "MaxAccuracy", 50, 100, 5)
-end
-
-function GuiModule:ToggleGui()
-    if not MainGui then
-        self:CreateMainGui(require(script.Parent.CoreLogicModule).GetSettings())
-    end
-
-    IsGuiOpen = not IsGuiOpen
-    MainGui.Enabled = IsGuiOpen
-
-    if IsGuiOpen then
-        MainFrame:TweenPosition(UDim2.new(0.5, -300, 0.5, -250), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
-    else
-        MainFrame:TweenPosition(UDim2.new(0.5, -300, 1, 600), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true)
-    end
 end
 
 function GuiModule.UpdateSuspicionBar(level)
