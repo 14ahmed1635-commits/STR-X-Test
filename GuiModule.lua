@@ -29,7 +29,7 @@ local SuspicionBarFrame = nil
 local SuspicionFill = nil
 local SuspicionLabel = nil
 local IsGuiOpen = false
-local Settings = {} -- سيتم ملؤها من الـ loader
+local Settings = {}
 
 -- == وظائف إنشاء عناصر الواجهة ==
 local function createCorner(parent, radius)
@@ -318,7 +318,7 @@ end
 
 -- == وظائف الوحدة الرئيسية ==
 function GuiModule.Initialize(playerGui, settingsFromLoader)
-    Settings = settingsFromLoader -- نسخ الإعدادات من الـ loader
+    Settings = settingsFromLoader
     
     -- إنشاء واجهة شريط الشك
     SuspicionBarGui = Instance.new("ScreenGui")
@@ -383,27 +383,91 @@ function GuiModule.Initialize(playerGui, settingsFromLoader)
         end
     end)
 
+    -- إنشاء زر التفعيل بدون صورة (استخدام نص بدلاً منها)
     local ToggleGui = Instance.new("ScreenGui")
     ToggleGui.Name = "STR_X_ToggleGui"
     ToggleGui.Parent = playerGui
     ToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ToggleGui.ResetOnSpawn = false
 
-    local ToggleButton = Instance.new("ImageButton")
+    local ToggleButton = Instance.new("TextButton")
     ToggleButton.Name = "ToggleButton"
     ToggleButton.Parent = ToggleGui
-    ToggleButton.BackgroundTransparency = 1
+    ToggleButton.BackgroundColor3 = Theme.Accent
     ToggleButton.BorderSizePixel = 0
     ToggleButton.Size = UDim2.new(0, 60, 0, 60)
     ToggleButton.Position = UDim2.new(0, 10, 0.5, -30)
-    ToggleButton.Image = "rbxassetid://114817609456125"
-    ToggleButton.Draggable = true
-
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Text = "STR\nX"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 16
+    ToggleButton.TextWrapped = true
+    createCorner(ToggleButton, 30)
+    createStroke(ToggleButton, Color3.fromRGB(255, 255, 255), 2)
+    
+    -- إضافة تأثير للزر
+    ToggleButton.MouseEnter:Connect(function()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
+            Size = UDim2.new(0, 65, 0, 65),
+            BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+        }):Play()
+    end)
+    
+    ToggleButton.MouseLeave:Connect(function()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
+            Size = UDim2.new(0, 60, 0, 60),
+            BackgroundColor3 = Theme.Accent
+        }):Play()
+    end)
+    
+    -- جعل الزر قابل للسحب
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
     ToggleButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ToggleButton.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    ToggleButton.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    -- فتح القائمة عند النقر
+    local clickTime = 0
+    ToggleButton.MouseButton1Click:Connect(function()
+        local currentTime = tick()
+        if currentTime - clickTime < 0.3 then -- نقرة مزدوجة
+            return
+        end
+        clickTime = currentTime
+        
+        task.wait(0.1) -- انتظار قصير للتأكد من أنه ليس سحب
+        if not dragging then
             toggleMainGui()
         end
     end)
+    
+    warn("[+] STR X GUI Initialized Successfully!")
+    warn("[+] اضغط على الزر الأزرق 'STR X' لفتح القائمة")
 end
 
 function GuiModule.UpdateSuspicionBar(level)
